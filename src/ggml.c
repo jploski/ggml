@@ -4075,17 +4075,17 @@ size_t ggml_sizeof_tensor_1d(enum ggml_type type, int64_t ne0) {
 }
 
 size_t ggml_sizeof_tensor_2d(enum ggml_type type, int64_t ne0, int64_t ne1) {
-    auto ne = {ne0, ne1};
+    int64_t ne[2] = {ne0, ne1};
     return ggml_tensor_overhead() + ggml_sizeof_tensor_data_impl(type, 2, &ne);
 }
 
 size_t ggml_sizeof_tensor_3d(enum ggml_type type, int64_t ne0, int64_t ne1, int64_t ne2) {
-    auto ne = {ne0, ne1, ne2};
+    int64_t ne[3] = {ne0, ne1, ne2};
     return ggml_tensor_overhead() + ggml_sizeof_tensor_data_impl(type, 3, &ne);
 }
 
 size_t ggml_sizeof_tensor_4d(enum ggml_type type, int64_t ne0, int64_t ne1, int64_t ne2, int64_t ne3) {
-    auto ne = {ne0, ne1, ne2, ne3};
+    int64_t ne[4] = {ne0, ne1, ne2, ne3};
     return ggml_tensor_overhead() + ggml_sizeof_tensor_data_impl(type, 4, &ne);
 }
 
