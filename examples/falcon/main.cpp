@@ -441,7 +441,6 @@ bool falcon_eval(
 
     // wte
     struct ggml_tensor * inpL = ggml_get_rows(ctx0, model.tok_embeddings, embd);
-    struct ggml_tensor* repeat_dummy = ggml_new_tensor_3d(ctx0, inpL->type, head_dim, N + n_past, n_head);
 
     ggml_type wtype = GGML_TYPE_F32;
     const int sizeof_wtype = ggml_type_sizef(wtype);
@@ -539,8 +538,6 @@ bool falcon_eval(
 
             // K * Q
 
-            K = ggml_cont(ctx0, ggml_repeat2(ctx0, K, repeat_dummy));
-
             struct ggml_tensor * Q = ggml_permute(ctx0, Qcur, 0, 2, 1, 3);
             struct ggml_tensor * KQ = ggml_mul_mat(ctx0, K, Q);
 
@@ -570,7 +567,7 @@ bool falcon_eval(
                     head_dim, n_head_kv, n_past + N),
                 0, 2, 1, 3);
 
-            V = ggml_cont(ctx0, ggml_transpose(ctx0, ggml_repeat2(ctx0, V, repeat_dummy)));
+            V = ggml_cont(ctx0, ggml_transpose(ctx0, V));
 
             // KQV = transpose(V) * KQ_soft_max
             struct ggml_tensor * KQV = ggml_mul_mat(ctx0, V, KQ_soft_max);
