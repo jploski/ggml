@@ -20,6 +20,10 @@
 #include <fstream>
 #include <vector>
 
+#if defined(_MSC_VER)
+#pragma warning(disable: 4244 4267) // possible loss of data
+#endif
+
 // evaluate the MNIST compute graph
 //
 //   - fname_cgraph: path to the compute graph
@@ -45,9 +49,9 @@ int mnist_eval(
     static void * buf = malloc(buf_size);
 
     struct ggml_init_params params = {
-        .mem_size   = buf_size,
-        .mem_buffer = buf,
-        .no_alloc   = false,
+        /*.mem_size   =*/ buf_size,
+        /*.mem_buffer =*/ buf,
+        /*.no_alloc   =*/ false,
     };
 
     struct ggml_context * ctx_work = ggml_init(params);

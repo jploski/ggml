@@ -11,6 +11,10 @@
 #include <vector>
 #include <algorithm>
 
+#if defined(_MSC_VER)
+#pragma warning(disable: 4244 4267) // possible loss of data
+#endif
+
 // default hparams
 struct mnist_hparams {
     int32_t n_input   = 784;
@@ -73,9 +77,9 @@ bool mnist_model_load(const std::string & fname, mnist_model & model) {
     // create the ggml context
     {
         struct ggml_init_params params = {
-            .mem_size   = ctx_size + 1024*1024,
-            .mem_buffer = NULL,
-            .no_alloc   = false,
+            /*.mem_size   =*/ ctx_size + 1024*1024,
+            /*.mem_buffer =*/ NULL,
+            /*.no_alloc   =*/ false,
         };
 
         model.ctx = ggml_init(params);
@@ -175,9 +179,9 @@ int mnist_eval(
     static void * buf = malloc(buf_size);
 
     struct ggml_init_params params = {
-        .mem_size   = buf_size,
-        .mem_buffer = buf,
-        .no_alloc   = false,
+        /*.mem_size   =*/ buf_size,
+        /*.mem_buffer =*/ buf,
+        /*.no_alloc   =*/ false,
     };
 
     struct ggml_context * ctx0 = ggml_init(params);

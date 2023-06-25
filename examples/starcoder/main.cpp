@@ -12,6 +12,10 @@
 #include <string>
 #include <vector>
 
+#if defined(_MSC_VER)
+#pragma warning(disable: 4244 4267) // possible loss of data
+#endif
+
 // default hparams (GPT-2 117M)
 // https://huggingface.co/bigcode/gpt_bigcode-santacoder/blob/main/config.json
 struct starcoder_hparams {
@@ -139,6 +143,22 @@ bool starcoder_model_load(const std::string & fname, starcoder_model & model, gp
 
             // if (i < 10) fprintf(stderr, "%.s: vocab[%d] = '%s'\n", __func__, i, word.c_str());
         }
+
+        // Add StarChat special tokens.
+        for (const std::string & token : {
+                "<|system|>",
+                "<|user|>",
+                "<|assistant|>",
+                "<|end|>",
+                "<fim-prefix>",
+                "<fim-middle>",
+                "<fim-suffix>",
+                "<fim-pad>"
+            }) {
+            if (vocab.token_to_id.find(token) != vocab.token_to_id.end()) {
+                vocab.add_special_token(token);
+            }
+        }
     }
 
     // for the big tensors, we have the option to store the data in 16-bit floats or quantized
@@ -202,9 +222,9 @@ bool starcoder_model_load(const std::string & fname, starcoder_model & model, gp
     // create the ggml context
     {
         struct ggml_init_params params = {
-            .mem_size   = ctx_size,
-            .mem_buffer = NULL,
-            .no_alloc   = false,
+            /*.mem_size   =*/ ctx_size,
+            /*.mem_buffer =*/ NULL,
+            /*.no_alloc   =*/ false,
         };
 
         model.ctx = ggml_init(params);
@@ -436,9 +456,9 @@ bool starcoder_eval(
     }
 
     struct ggml_init_params params = {
-        .mem_size   = buf_size,
-        .mem_buffer = buf,
-        .no_alloc   = false,
+        /*.mem_size   =*/ buf_size,
+        /*.mem_buffer =*/ buf,
+        /*.no_alloc   =*/ false,
     };
 
     struct ggml_context * ctx0 = ggml_init(params);
@@ -781,6 +801,15 @@ int main(int argc, char ** argv) {
     }
     printf("\n\n");
 
+    // Handle StarChat "<|end|>" token.
+    gpt_vocab::id starchat_end_token = -1;
+    {
+        const auto it = vocab.token_to_id.find("<|end|>");
+        if (it != vocab.token_to_id.end()) {
+            starchat_end_token = it->second;
+        }
+    }
+
     // submit the input prompt token-by-token
     // this reduces the memory usage during inference, at the cost of a bit of speed at the beginning
     std::vector<gpt_vocab::id> embd;
@@ -848,6 +877,10 @@ int main(int argc, char ** argv) {
         }
         // check if model is starcoder
         else if (embd.back() == 0) { //TODO: this is only for starcoder
+            break;
+        }
+        // Handle StarChat "<|end|>" token.
+        else if (embd.back() == starchat_end_token) {
             break;
         }
     }
