@@ -536,27 +536,8 @@ bool falcon_eval(
                     il * n_ctx * ggml_element_size(model.memory_k) * n_head_kv * head_dim),
                 0, 2, 1, 3);
 
-            // K * Q
-
-            K = ggml_cont(ctx0, ggml_repeat2(ctx0, K, repeat_dummy));
-
             struct ggml_tensor * Q = ggml_permute(ctx0, Qcur, 0, 2, 1, 3);
-            struct ggml_tensor * KQ = ggml_mul_mat(ctx0, K, Q);
 
-            // KQ_scaled = KQ / sqrt(n_embd/n_head)
-            struct ggml_tensor * KQ_scaled =
-                ggml_scale_inplace(ctx0,
-                        KQ,
-                        ggml_new_f32(ctx0, 1.0f/sqrt(float(head_dim)))
-                        );
-
-            // KQ_masked = mask_past(KQ_scaled)
-            struct ggml_tensor * KQ_masked = ggml_diag_mask_inf_inplace(ctx0, KQ_scaled, n_past);
-
-            // KQ = soft_max(KQ_masked)
-            struct ggml_tensor * KQ_soft_max = ggml_soft_max_inplace(ctx0, KQ_masked);
-
-            // V_trans = Vmem.view(n_embd/n_head, n_head, n_past + N).permute(1, 2, 0, 3).contiguous()
             struct ggml_tensor* V = ggml_permute(
                 ctx0,
                 ggml_view_3d(
@@ -568,10 +549,10 @@ bool falcon_eval(
                     il * n_ctx * ggml_element_size(model.memory_v) * n_head_kv * head_dim),
                 0, 2, 1, 3);
 
+            K = ggml_cont(ctx0, ggml_repeat2(ctx0, K, repeat_dummy));
             V = ggml_cont(ctx0, ggml_transpose(ctx0, ggml_repeat2(ctx0, V, repeat_dummy)));
 
-            // KQV = transpose(V) * KQ_soft_max
-            struct ggml_tensor * KQV = ggml_mul_mat(ctx0, V, KQ_soft_max);
+            struct ggml_tensor * KQV = ggml_flash_attn(ctx0, Q, K, V, true);
 
             // KQV_merged = KQV.permute(0, 2, 1, 3)
             struct ggml_tensor * KQV_merged = ggml_permute(ctx0, KQV, 0, 2, 1, 3);
